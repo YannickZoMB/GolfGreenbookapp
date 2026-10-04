@@ -10,8 +10,12 @@ struct ScanView: View {
 
     var body: some View {
         ZStack {
+            #if targetEnvironment(simulator)
+            Color.black.ignoresSafeArea()
+            #else
             ARViewContainer(session: scan.session)
                 .ignoresSafeArea()
+            #endif
 
             Crosshair(active: scan.aimPoint != nil)
 
@@ -110,6 +114,7 @@ private struct Crosshair: View {
     }
 }
 
+#if !targetEnvironment(simulator)
 struct ARViewContainer: UIViewRepresentable {
     let session: ARSession
 
@@ -121,6 +126,7 @@ struct ARViewContainer: UIViewRepresentable {
 
     func updateUIView(_ uiView: ARView, context: Context) {}
 }
+#endif
 
 /// Draufsicht während des Scans: grau = bereits erfasst, grün = Kante, blau = eigene Position.
 private struct MiniMapView: View {

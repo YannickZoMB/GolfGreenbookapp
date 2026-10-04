@@ -13,7 +13,10 @@ struct ContentView: View {
     var body: some View {
         switch screen {
         case .start:
-            StartView { screen = .scan }
+            StartView(
+                onStart: { screen = .scan },
+                onDemo: { screen = .result(DemoGreen.makeCapture()) }
+            )
         case .scan:
             ScanView(
                 onCancel: { screen = .start },
@@ -27,6 +30,7 @@ struct ContentView: View {
 
 struct StartView: View {
     let onStart: () -> Void
+    let onDemo: () -> Void
 
     var body: some View {
         VStack(spacing: 24) {
@@ -66,7 +70,14 @@ struct StartView: View {
                     .foregroundStyle(.red)
                     .multilineTextAlignment(.center)
             }
+
+            Button("Demo-Grün ansehen", action: onDemo)
+                .buttonStyle(.bordered)
         }
         .padding()
     }
+}
+
+#Preview {
+    ContentView()
 }

@@ -2,6 +2,8 @@ import ARKit
 import Combine
 import simd
 
+#if !targetEnvironment(simulator)
+
 /// Führt den AR-Scan: liest LiDAR-Tiefenbilder, rechnet sie in Weltpunkte um und füllt das Höhenraster.
 final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
     static var isSupported: Bool {
@@ -194,3 +196,31 @@ private struct DepthProjector {
         )
     }
 }
+
+#else
+
+/// Platzhalter für den Simulator: dort gibt es weder Kamera noch LiDAR.
+final class ScanSession: ObservableObject {
+    static var isSupported: Bool { false }
+
+    @Published private(set) var edgePoints: [SIMD3<Float>] = []
+    @Published private(set) var coverage: [CellKey] = []
+    @Published private(set) var trackingMessage: String? = "Im Simulator gibt es keine Kamera"
+    @Published private(set) var cameraPosition = SIMD2<Float>(0, 0)
+    @Published private(set) var cameraForward = SIMD2<Float>(0, -1)
+    @Published private(set) var aimPoint: SIMD3<Float>?
+    @Published private(set) var pointCount = 0
+
+    let coverageCellSize: Float = 0.25
+    var coveredArea: Float { 0 }
+    var distanceToLastEdgePoint: Float? { nil }
+
+    func start() {}
+    func pause() {}
+    @discardableResult
+    func addEdgePoint() -> Bool { false }
+    func removeLastEdgePoint() {}
+    func makeCapture() -> ScanCapture { DemoGreen.makeCapture() }
+}
+
+#endif

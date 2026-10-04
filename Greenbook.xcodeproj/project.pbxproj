@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		62ADFAF7EDC910F8379C61C6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2D059072C1E33E64D7DCDF /* ContentView.swift */; };
+		593A613D15456A2B8F75CDCB /* DemoGreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47CC73714D83D512E86A9763 /* DemoGreen.swift */; };
 		75702FC025FAF2B30A3224D1 /* EdgeSpline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA039CB5DD98723B9FDBBC8 /* EdgeSpline.swift */; };
 		D1588905C2EE1FD36EE7C947 /* GreenModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D542CB9875025A7F7DFD40CC /* GreenModel.swift */; };
 		CF2522AFDDA604FD80B65E37 /* GreenbookApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BE94DD0E240A9698E7E954C /* GreenbookApp.swift */; };
@@ -21,6 +22,7 @@
 /* Begin PBXFileReference section */
 		D2A57DC1D883FD21FB995169 /* Greenbook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Greenbook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D2D059072C1E33E64D7DCDF /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		47CC73714D83D512E86A9763 /* DemoGreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoGreen.swift; sourceTree = "<group>"; };
 		3EA039CB5DD98723B9FDBBC8 /* EdgeSpline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSpline.swift; sourceTree = "<group>"; };
 		D542CB9875025A7F7DFD40CC /* GreenModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreenModel.swift; sourceTree = "<group>"; };
 		0BE94DD0E240A9698E7E954C /* GreenbookApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreenbookApp.swift; sourceTree = "<group>"; };
@@ -62,6 +64,7 @@
 			isa = PBXGroup;
 			children = (
 				4D2D059072C1E33E64D7DCDF /* ContentView.swift */,
+				47CC73714D83D512E86A9763 /* DemoGreen.swift */,
 				3EA039CB5DD98723B9FDBBC8 /* EdgeSpline.swift */,
 				D542CB9875025A7F7DFD40CC /* GreenModel.swift */,
 				0BE94DD0E240A9698E7E954C /* GreenbookApp.swift */,
@@ -145,6 +148,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				62ADFAF7EDC910F8379C61C6 /* ContentView.swift in Sources */,
+				593A613D15456A2B8F75CDCB /* DemoGreen.swift in Sources */,
 				75702FC025FAF2B30A3224D1 /* EdgeSpline.swift in Sources */,
 				D1588905C2EE1FD36EE7C947 /* GreenModel.swift in Sources */,
 				CF2522AFDDA604FD80B65E37 /* GreenbookApp.swift in Sources */,
@@ -297,7 +301,7 @@
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yannickzomb.greenbook;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTED_PLATFORMS = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = minimal;
@@ -330,7 +334,7 @@
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yannickzomb.greenbook;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTED_PLATFORMS = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = minimal;
