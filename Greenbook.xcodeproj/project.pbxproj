@@ -7,13 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		62ADFAF7EDC910F8379C61C6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2D059072C1E33E64D7DCDF /* ContentView.swift */; };
 		593A613D15456A2B8F75CDCB /* DemoGreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47CC73714D83D512E86A9763 /* DemoGreen.swift */; };
 		75702FC025FAF2B30A3224D1 /* EdgeSpline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA039CB5DD98723B9FDBBC8 /* EdgeSpline.swift */; };
+		028A8A4F2B4EC69312320243 /* GreenMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF187ED2865C9A49CEAF86B8 /* GreenMapView.swift */; };
 		D1588905C2EE1FD36EE7C947 /* GreenModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D542CB9875025A7F7DFD40CC /* GreenModel.swift */; };
 		CF2522AFDDA604FD80B65E37 /* GreenbookApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BE94DD0E240A9698E7E954C /* GreenbookApp.swift */; };
+		CA2BFD7173972A73917E820C /* GreenbookLayers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8189CEFF3F15C2857D728E /* GreenbookLayers.swift */; };
+		BFE04693F016BA6615C90C17 /* GreenbookScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB9A006ECFA7315AD51C4C1 /* GreenbookScreen.swift */; };
+		063E6919FD0E0A331CB7FDBE /* GreenbookStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BD1BB498D5B3AFA2781A74 /* GreenbookStyle.swift */; };
 		77D1DB61A6324607C73F9F55 /* HeightGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D40B7B6DF69D850FC909223 /* HeightGrid.swift */; };
-		C5E4C9C1D807ED6B33CCE543 /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7ED5224DC41D06F7F3764E5 /* ResultView.swift */; };
+		99E598DD29BDEB999D1F7D2D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93D9582C45138D6C69D42F34 /* HomeView.swift */; };
+		805A6232D3EC900D44609D82 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4EFE066E4E15DF67EF08EE /* Models.swift */; };
 		5EEC710546712C76AC2605AB /* ScanSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B368718B794C83C765318E5 /* ScanSession.swift */; };
 		4B8D9BA373F89FEED4FFD64B /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C355B33BF3F98951D830257D /* ScanView.swift */; };
 		DCB5039E1B8D057334E9C8BE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8D562B3E40B6C9EC53F38F07 /* Assets.xcassets */; };
@@ -21,13 +25,17 @@
 
 /* Begin PBXFileReference section */
 		D2A57DC1D883FD21FB995169 /* Greenbook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Greenbook.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4D2D059072C1E33E64D7DCDF /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		47CC73714D83D512E86A9763 /* DemoGreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoGreen.swift; sourceTree = "<group>"; };
 		3EA039CB5DD98723B9FDBBC8 /* EdgeSpline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSpline.swift; sourceTree = "<group>"; };
+		BF187ED2865C9A49CEAF86B8 /* GreenMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreenMapView.swift; sourceTree = "<group>"; };
 		D542CB9875025A7F7DFD40CC /* GreenModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreenModel.swift; sourceTree = "<group>"; };
 		0BE94DD0E240A9698E7E954C /* GreenbookApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreenbookApp.swift; sourceTree = "<group>"; };
+		5E8189CEFF3F15C2857D728E /* GreenbookLayers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreenbookLayers.swift; sourceTree = "<group>"; };
+		8BB9A006ECFA7315AD51C4C1 /* GreenbookScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreenbookScreen.swift; sourceTree = "<group>"; };
+		F4BD1BB498D5B3AFA2781A74 /* GreenbookStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreenbookStyle.swift; sourceTree = "<group>"; };
 		4D40B7B6DF69D850FC909223 /* HeightGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightGrid.swift; sourceTree = "<group>"; };
-		A7ED5224DC41D06F7F3764E5 /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
+		93D9582C45138D6C69D42F34 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		8B4EFE066E4E15DF67EF08EE /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		2B368718B794C83C765318E5 /* ScanSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSession.swift; sourceTree = "<group>"; };
 		C355B33BF3F98951D830257D /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
 		8D562B3E40B6C9EC53F38F07 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -63,13 +71,17 @@
 		DB0F6F37EBEB6EA094891243 /* Greenbook */ = {
 			isa = PBXGroup;
 			children = (
-				4D2D059072C1E33E64D7DCDF /* ContentView.swift */,
 				47CC73714D83D512E86A9763 /* DemoGreen.swift */,
 				3EA039CB5DD98723B9FDBBC8 /* EdgeSpline.swift */,
+				BF187ED2865C9A49CEAF86B8 /* GreenMapView.swift */,
 				D542CB9875025A7F7DFD40CC /* GreenModel.swift */,
 				0BE94DD0E240A9698E7E954C /* GreenbookApp.swift */,
+				5E8189CEFF3F15C2857D728E /* GreenbookLayers.swift */,
+				8BB9A006ECFA7315AD51C4C1 /* GreenbookScreen.swift */,
+				F4BD1BB498D5B3AFA2781A74 /* GreenbookStyle.swift */,
 				4D40B7B6DF69D850FC909223 /* HeightGrid.swift */,
-				A7ED5224DC41D06F7F3764E5 /* ResultView.swift */,
+				93D9582C45138D6C69D42F34 /* HomeView.swift */,
+				8B4EFE066E4E15DF67EF08EE /* Models.swift */,
 				2B368718B794C83C765318E5 /* ScanSession.swift */,
 				C355B33BF3F98951D830257D /* ScanView.swift */,
 				8D562B3E40B6C9EC53F38F07 /* Assets.xcassets */,
@@ -147,13 +159,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				62ADFAF7EDC910F8379C61C6 /* ContentView.swift in Sources */,
 				593A613D15456A2B8F75CDCB /* DemoGreen.swift in Sources */,
 				75702FC025FAF2B30A3224D1 /* EdgeSpline.swift in Sources */,
+				028A8A4F2B4EC69312320243 /* GreenMapView.swift in Sources */,
 				D1588905C2EE1FD36EE7C947 /* GreenModel.swift in Sources */,
 				CF2522AFDDA604FD80B65E37 /* GreenbookApp.swift in Sources */,
+				CA2BFD7173972A73917E820C /* GreenbookLayers.swift in Sources */,
+				BFE04693F016BA6615C90C17 /* GreenbookScreen.swift in Sources */,
+				063E6919FD0E0A331CB7FDBE /* GreenbookStyle.swift in Sources */,
 				77D1DB61A6324607C73F9F55 /* HeightGrid.swift in Sources */,
-				C5E4C9C1D807ED6B33CCE543 /* ResultView.swift in Sources */,
+				99E598DD29BDEB999D1F7D2D /* HomeView.swift in Sources */,
+				805A6232D3EC900D44609D82 /* Models.swift in Sources */,
 				5EEC710546712C76AC2605AB /* ScanSession.swift in Sources */,
 				4B8D9BA373F89FEED4FFD64B /* ScanView.swift in Sources */,
 			);

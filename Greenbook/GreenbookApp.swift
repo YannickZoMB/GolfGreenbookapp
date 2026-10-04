@@ -1,10 +1,12 @@
+import SwiftData
 import SwiftUI
 
 @main
 struct GreenbookApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
         }
+        .modelContainer(for: [Course.self, Hole.self])
     }
 }

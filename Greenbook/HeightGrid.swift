@@ -26,7 +26,8 @@ final class HeightGrid {
     private let outlierThreshold: Double = 0.05
 
     private(set) var cells: [CellKey: CellAccum] = [:]
-    private(set) var coverage: Set<CellKey> = []
+    /// Grobe Zellen mit mittlerer Höhe, für die Abdeckungsanzeige im AR-Bild und in der Mini-Karte.
+    private(set) var coverage: [CellKey: CellAccum] = [:]
     private(set) var pointCount = 0
 
     func add(_ p: SIMD3<Float>) {
@@ -41,7 +42,11 @@ final class HeightGrid {
         cells[key] = cell
         pointCount += 1
 
-        coverage.insert(CellKey(x: Int32(floor(p.x / coverageCellSize)), z: Int32(floor(p.z / coverageCellSize))))
+        let coarse = CellKey(x: Int32(floor(p.x / coverageCellSize)), z: Int32(floor(p.z / coverageCellSize)))
+        var coverageCell = coverage[coarse] ?? CellAccum()
+        coverageCell.sum += Double(p.y)
+        coverageCell.count += 1
+        coverage[coarse] = coverageCell
     }
 }
 

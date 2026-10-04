@@ -2,7 +2,11 @@
 
 iPhone-App, die ein Golfgrün mit dem LiDAR-Sensor scannt und daraus ein Greenbook erzeugt.
 
-**Stand: Prototyp 0.1.** Grün scannen, Kante per Punkten setzen, Höhenkarte anzeigen (tief = rot, hoch = grün), Bild und Messwerte teilen. Pfeile, Höhenlinien, Einstellungen und das Buch für alle Löcher folgen, sobald die Messung auf einem echten Grün überzeugt.
+**Stand: Version 0.2.**
+- Golfplätze anlegen (9/18/27 Loch), pro Loch das Grün scannen, alles wird auf dem iPhone gespeichert.
+- Beim Scannen werden die erfassten Flächen im Kamerabild grün markiert, Kantenpunkte als weiße Kugeln.
+- Greenbook mit Höhenfarben, Höhenlinien und Gefälle-Pfeilen; Darstellung über Regler einstellbar (merkt sich die App).
+- Export: PNG pro Loch (plus Messwerte als CSV) oder das ganze Buch eines Platzes.
 
 Voraussetzungen: Mac mit Xcode, iPhone mit LiDAR (12 Pro oder neuer) und mindestens iOS 17.
 
@@ -11,7 +15,7 @@ Voraussetzungen: Mac mit Xcode, iPhone mit LiDAR (12 Pro oder neuer) und mindest
 1. Öffne Xcode, wähle im Startfenster *Clone Git Repository …* und füge `https://github.com/YannickZoMB/GolfGreenbookapp` ein. Anschließend öffnet sich das Projekt `Greenbook.xcodeproj`.
 2. Oben in der Mitte von Xcode als Ziel einen Simulator wählen, z. B. *iPhone 16 Pro*. Steht dort keiner zur Auswahl, bietet Xcode an, die iOS-Simulatoren herunterzuladen (*Get* bzw. *Settings → Components*).
 3. Auf ▶︎ klicken. Nach dem Bauen erscheint ein iPhone-Fenster mit der App.
-4. Tippe auf *Demo-Grün ansehen*: Du siehst ein erfundenes Beispielgrün mit Höhenkarte. Scannen geht im Simulator nicht, dafür braucht es das echte iPhone.
+4. Tippe auf *Demo-Grün ansehen*: Du siehst ein erfundenes Beispielgrün als Greenbook. Scannen geht im Simulator nicht, dafür braucht es das echte iPhone.
 
 Den Code selbst siehst du links in der Seitenleiste im Ordner *Greenbook*.
 
@@ -30,20 +34,25 @@ Mit einem kostenlosen Account läuft die App 7 Tage; danach einfach in Xcode wie
 
 ## So scannst du
 
-1. *Neuen Scan starten*, kurz warten, bis der gelbe Hinweis oben verschwindet.
+1. *Neuen Golfplatz anlegen* → Name und Lochanzahl → *Starten*. Loch antippen → *Grün scannen*. Kurz warten, bis der gelbe Hinweis oben verschwindet.
 2. **Kante:** Lauf um das Grün und richte das Fadenkreuz auf die Grenze zwischen Grün und Vorgrün. Alle 2–3 m auf *Punkt setzen* tippen (die Anzeige zeigt den Abstand zum letzten Punkt). Falsch gesetzt? Pfeil-Knopf löscht den letzten Punkt.
-3. **Fläche:** Geh danach in Bahnen über das Grün, das iPhone in Hüfthöhe schräg nach unten, ca. 1–3 m vor dir. Die kleine Karte unten links zeigt, was schon erfasst ist.
-4. *Fertig* tippen: die App rechnet die Höhenkarte aus.
-5. Über das Teilen-Symbol oben rechts kannst du das Bild und die Messwerte (CSV) verschicken, z. B. um die Genauigkeit gemeinsam auszuwerten.
+3. **Fläche:** Geh danach in Bahnen über das Grün, das iPhone in Hüfthöhe schräg nach unten, ca. 1–3 m vor dir. Erfasste Bereiche werden im Kamerabild grün (Augen-Knopf blendet das aus).
+4. *Fertig* tippen: die App rechnet das Greenbook aus.
+5. Oben rechts: Regler-Symbol für Höhenlinien, Pfeile und Farben; Teilen-Symbol für Bild und Messwerte. Auf der Platzübersicht exportiert *Buch* alle gescannten Löcher.
 
 ## Aufbau des Codes
 
 | Datei | Aufgabe |
 | --- | --- |
-| `ScanSession.swift` | AR-Sitzung, rechnet LiDAR-Tiefenbilder in Weltpunkte um |
+| `HomeView.swift` | Startseite, Golfplätze, Löcher, Platz-Export |
+| `Models.swift` | gespeicherte Daten (Golfplatz, Loch, Scan) |
+| `ScanSession.swift` | AR-Sitzung, LiDAR-Tiefenbilder → Weltpunkte, grüne Markierung im Kamerabild |
 | `HeightGrid.swift` | sammelt Punkte in einem 5-cm-Höhenraster |
 | `EdgeSpline.swift` | verbindet Kantenpunkte zu einer geschwungenen Kurve |
-| `GreenModel.swift` | Auswertung: Lücken füllen, glätten, Farbbild erzeugen, CSV-Export |
+| `GreenModel.swift` | Auswertung: Lücken füllen, glätten, CSV-Export |
+| `GreenbookLayers.swift` | Farbbild, Höhenlinien und Gefälle-Pfeile berechnen |
+| `GreenbookStyle.swift` | Einstellungen und Regler |
+| `GreenMapView.swift` | zeichnet das Greenbook |
+| `GreenbookScreen.swift` | Greenbook-Ansicht und PNG-Export |
 | `ScanView.swift` | Scan-Bildschirm mit Fadenkreuz und Mini-Karte |
-| `ResultView.swift` | Ergebnis mit Höhenkarte, Legende, Maßstab, Teilen |
 | `DemoGreen.swift` | erfundenes Beispielgrün zum Ausprobieren ohne Scan |

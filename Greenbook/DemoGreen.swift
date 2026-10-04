@@ -33,9 +33,9 @@ enum DemoGreen {
 
     /// Höhe in Metern an der Stelle (x, z); +z ist vorn (unten in der Karte).
     private static func height(_ x: Float, _ z: Float) -> Float {
-        let tilt = 0.02 * z + 0.012 * x
-        let crown = 0.06 * exp(-(pow(x - 4, 2) + pow(z + 3, 2)) / (2 * 9))
-        let hollow = -0.04 * exp(-(pow(x + 5, 2) + pow(z - 4, 2)) / (2 * 6.25))
+        let tilt = 0.012 * z + 0.006 * x
+        let crown = 0.08 * exp(-(pow(x - 4, 2) + pow(z + 3, 2)) / (2 * 9))
+        let hollow = -0.06 * exp(-(pow(x + 5, 2) + pow(z - 4, 2)) / (2 * 6.25))
         return -tilt + crown + hollow
     }
 }

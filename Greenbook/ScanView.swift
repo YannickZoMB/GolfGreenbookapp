@@ -3,17 +3,19 @@ import RealityKit
 import SwiftUI
 
 struct ScanView: View {
+    let title: String
     let onCancel: () -> Void
     let onFinish: (ScanCapture) -> Void
 
     @StateObject private var scan = ScanSession()
+    @State private var showOverlay = true
 
     var body: some View {
         ZStack {
             #if targetEnvironment(simulator)
             Color.black.ignoresSafeArea()
             #else
-            ARViewContainer(session: scan.session)
+            ARViewContainer(scan: scan)
                 .ignoresSafeArea()
             #endif
 
@@ -37,6 +39,7 @@ struct ScanView: View {
 
     private var statusBar: some View {
         VStack(spacing: 4) {
+            Text(title).font(.headline)
             if let message = scan.trackingMessage {
                 Text(message).font(.headline).foregroundStyle(.yellow)
             }
@@ -55,7 +58,7 @@ struct ScanView: View {
     }
 
     private var controls: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 10) {
             Button {
                 scan.pause()
                 onCancel()
@@ -73,13 +76,21 @@ struct ScanView: View {
             .disabled(scan.edgePoints.isEmpty)
 
             Button {
+                showOverlay.toggle()
+                scan.setOverlayVisible(showOverlay)
+            } label: {
+                Image(systemName: showOverlay ? "eye" : "eye.slash")
+            }
+            .buttonStyle(.bordered)
+
+            Button {
                 if scan.addEdgePoint() {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 } else {
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }
             } label: {
-                Label("Punkt setzen", systemImage: "plus.circle.fill")
+                Label("Punkt", systemImage: "plus.circle.fill")
                     .font(.headline)
             }
             .buttonStyle(.borderedProminent)
@@ -116,11 +127,12 @@ private struct Crosshair: View {
 
 #if !targetEnvironment(simulator)
 struct ARViewContainer: UIViewRepresentable {
-    let session: ARSession
+    let scan: ScanSession
 
     func makeUIView(context: Context) -> ARView {
         let view = ARView(frame: .zero, cameraMode: .ar, automaticallyConfigureSession: false)
-        view.session = session
+        view.session = scan.session
+        view.scene.addAnchor(scan.overlay.anchor)
         return view
     }
 

@@ -3,6 +3,7 @@ import Combine
 import simd
 
 #if !targetEnvironment(simulator)
+import RealityKit
 
 /// Führt den AR-Scan: liest LiDAR-Tiefenbilder, rechnet sie in Weltpunkte um und füllt das Höhenraster.
 final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
@@ -11,6 +12,8 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
     }
 
     let session = ARSession()
+    /// Grüne Fläche und Kantenpunkte, die im Kamerabild über das Gescannte gelegt werden.
+    let overlay = ScanOverlay()
     private let grid = HeightGrid()
 
     @Published private(set) var edgePoints: [SIMD3<Float>] = []
@@ -33,6 +36,7 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
 
     private var lastProcessed: TimeInterval = 0
     private var lastPublished: TimeInterval = 0
+    private var lastOverlayUpdate: TimeInterval = 0
 
     func start() {
         let config = ARWorldTrackingConfiguration()
@@ -46,16 +50,22 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
         session.pause()
     }
 
+    func setOverlayVisible(_ visible: Bool) {
+        overlay.isVisible = visible
+    }
+
     /// Setzt einen Kantenpunkt dort, wo das Fadenkreuz hinzeigt.
     @discardableResult
     func addEdgePoint() -> Bool {
         guard let aim = aimPoint else { return false }
         edgePoints.append(aim)
+        overlay.updateEdgePoints(edgePoints)
         return true
     }
 
     func removeLastEdgePoint() {
         _ = edgePoints.popLast()
+        overlay.updateEdgePoints(edgePoints)
     }
 
     func makeCapture() -> ScanCapture {
@@ -100,8 +110,84 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
             cameraPosition = SIMD2(position.x, position.z)
             let flat = SIMD2(forward.x, forward.z)
             if simd_length(flat) > 0.01 { cameraForward = simd_normalize(flat) }
-            coverage = Array(grid.coverage)
+            coverage = Array(grid.coverage.keys)
             pointCount = grid.pointCount
+        }
+        if frame.timestamp - lastOverlayUpdate > 1.0 {
+            lastOverlayUpdate = frame.timestamp
+            overlay.updateArea(grid.coverage, cellSize: grid.coverageCellSize)
+        }
+    }
+}
+
+/// Zeichnet im AR-Bild halbtransparente grüne Kacheln über alles, was schon gemessen wurde,
+/// und kleine Kugeln an den gesetzten Kantenpunkten.
+final class ScanOverlay {
+    let anchor = AnchorEntity(world: .zero)
+    private var areaEntity: ModelEntity?
+    private var edgeEntities: [ModelEntity] = []
+
+    private let areaMaterial: UnlitMaterial = {
+        var material = UnlitMaterial(color: UIColor(red: 0.2, green: 0.85, blue: 0.3, alpha: 1))
+        material.blending = .transparent(opacity: 0.35)
+        material.faceCulling = .none
+        return material
+    }()
+    private let edgeMaterial = UnlitMaterial(color: UIColor(red: 1, green: 1, blue: 1, alpha: 1))
+
+    var isVisible: Bool {
+        get { anchor.isEnabled }
+        set { anchor.isEnabled = newValue }
+    }
+
+    func updateArea(_ coverage: [CellKey: CellAccum], cellSize: Float) {
+        var positions: [SIMD3<Float>] = []
+        var indices: [UInt32] = []
+        positions.reserveCapacity(coverage.count * 4)
+        indices.reserveCapacity(coverage.count * 6)
+        // Kleiner Spalt zwischen den Kacheln, damit man das Raster erkennt.
+        let inset = cellSize * 0.06
+        for (key, cell) in coverage where cell.count >= 3 {
+            let x0 = Float(key.x) * cellSize + inset
+            let x1 = Float(key.x + 1) * cellSize - inset
+            let z0 = Float(key.z) * cellSize + inset
+            let z1 = Float(key.z + 1) * cellSize - inset
+            // 1 cm über dem Boden, damit die Kachel nicht im Gras verschwindet.
+            let y = cell.mean + 0.01
+            let base = UInt32(positions.count)
+            positions.append(SIMD3(x0, y, z0))
+            positions.append(SIMD3(x0, y, z1))
+            positions.append(SIMD3(x1, y, z1))
+            positions.append(SIMD3(x1, y, z0))
+            indices.append(contentsOf: [base, base + 1, base + 2, base, base + 2, base + 3])
+        }
+        guard !positions.isEmpty else { return }
+
+        var descriptor = MeshDescriptor(name: "coverage")
+        descriptor.positions = MeshBuffers.Positions(positions)
+        descriptor.primitives = .triangles(indices)
+        guard let mesh = try? MeshResource.generate(from: [descriptor]) else { return }
+
+        if let areaEntity {
+            areaEntity.model?.mesh = mesh
+        } else {
+            let entity = ModelEntity(mesh: mesh, materials: [areaMaterial])
+            anchor.addChild(entity)
+            areaEntity = entity
+        }
+    }
+
+    func updateEdgePoints(_ points: [SIMD3<Float>]) {
+        while edgeEntities.count > points.count {
+            edgeEntities.removeLast().removeFromParent()
+        }
+        while edgeEntities.count < points.count {
+            let entity = ModelEntity(mesh: .generateSphere(radius: 0.04), materials: [edgeMaterial])
+            anchor.addChild(entity)
+            edgeEntities.append(entity)
+        }
+        for (entity, point) in zip(edgeEntities, points) {
+            entity.position = point
         }
     }
 }
@@ -217,6 +303,7 @@ final class ScanSession: ObservableObject {
 
     func start() {}
     func pause() {}
+    func setOverlayVisible(_ visible: Bool) {}
     @discardableResult
     func addEdgePoint() -> Bool { false }
     func removeLastEdgePoint() {}

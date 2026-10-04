@@ -1,4 +1,3 @@
-import CoreGraphics
 import Foundation
 import simd
 
@@ -20,7 +19,6 @@ struct GreenModel {
     let area: Float
     /// Anteil der Fläche innerhalb der Kante, der tatsächlich gemessen wurde.
     let measuredFraction: Float
-    let image: CGImage
 
     static func build(from capture: ScanCapture) -> GreenModel? {
         let cs = capture.cellSize
@@ -68,8 +66,6 @@ struct GreenModel {
         let low = valid[Int(Float(valid.count - 1) * 0.02)]
         let high = valid[Int(Float(valid.count - 1) * 0.98)]
 
-        guard let image = renderImage(heights, inside: inside, cols: cols, rows: rows, low: low, high: high) else { return nil }
-
         return GreenModel(
             cellSize: cs,
             origin: origin,
@@ -81,8 +77,7 @@ struct GreenModel {
             lowHeight: low,
             highHeight: high,
             area: Float(insideCount) * cs * cs,
-            measuredFraction: Float(measured) / Float(insideCount),
-            image: image
+            measuredFraction: Float(measured) / Float(insideCount)
         )
     }
 
@@ -173,45 +168,6 @@ struct GreenModel {
             }
         }
         return out
-    }
-
-    /// Farbbild des Rasters: tief = rot, mittel = gelb, hoch = grün; ungemessen = grau; außen = transparent.
-    private static func renderImage(_ h: [Float], inside: [Bool], cols: Int, rows: Int, low: Float, high: Float) -> CGImage? {
-        var pixels = [UInt8](repeating: 0, count: cols * rows * 4)
-        let range = max(high - low, 0.001)
-        for i in 0..<(cols * rows) where inside[i] {
-            let rgb: SIMD3<Float>
-            if h[i].isNaN {
-                rgb = SIMD3(0.75, 0.75, 0.75)
-            } else {
-                rgb = heightColor(min(max((h[i] - low) / range, 0), 1))
-            }
-            pixels[i * 4 + 0] = UInt8(rgb.x * 255)
-            pixels[i * 4 + 1] = UInt8(rgb.y * 255)
-            pixels[i * 4 + 2] = UInt8(rgb.z * 255)
-            pixels[i * 4 + 3] = 255
-        }
-        guard let provider = CGDataProvider(data: Data(pixels) as CFData) else { return nil }
-        return CGImage(
-            width: cols,
-            height: rows,
-            bitsPerComponent: 8,
-            bitsPerPixel: 32,
-            bytesPerRow: cols * 4,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
-            provider: provider,
-            decode: nil,
-            shouldInterpolate: true,
-            intent: .defaultIntent
-        )
-    }
-
-    static func heightColor(_ t: Float) -> SIMD3<Float> {
-        let red = SIMD3<Float>(0.85, 0.16, 0.12)
-        let yellow = SIMD3<Float>(0.98, 0.84, 0.22)
-        let green = SIMD3<Float>(0.12, 0.58, 0.22)
-        return t < 0.5 ? simd_mix(red, yellow, SIMD3(repeating: t * 2)) : simd_mix(yellow, green, SIMD3(repeating: (t - 0.5) * 2))
     }
 
     // MARK: - Export der Rohdaten
