@@ -150,7 +150,6 @@ final class ScanOverlay {
     private let areaMaterial: UnlitMaterial = {
         var material = UnlitMaterial(color: UIColor(red: 0.2, green: 0.85, blue: 0.3, alpha: 1))
         material.blending = .transparent(opacity: 0.35)
-        material.faceCulling = .none
         return material
     }()
     private let edgeMaterial = UnlitMaterial(color: UIColor(red: 1, green: 1, blue: 1, alpha: 1))
