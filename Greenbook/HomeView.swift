@@ -66,9 +66,7 @@ struct HomeView: View {
                 case .hole(let hole):
                     HoleView(hole: hole)
                 case .demo:
-                    GreenbookScreen(title: "Demo-Grün") { DemoGreen.makeCapture() }
-                        .navigationTitle("Demo-Grün")
-                        .navigationBarTitleDisplayMode(.inline)
+                    DemoView()
                 }
             }
             .sheet(isPresented: $showNewCourse) {
@@ -79,6 +77,17 @@ struct HomeView: View {
             }
         }
         .tint(.green)
+    }
+}
+
+/// Demo-Grün mit eigener, nicht gespeicherter Drehung.
+private struct DemoView: View {
+    @State private var rotation: Double = 0
+
+    var body: some View {
+        GreenbookScreen(title: "Demo-Grün", rotation: $rotation) { DemoGreen.makeCapture() }
+            .navigationTitle("Demo-Grün")
+            .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -262,6 +271,7 @@ struct CourseDetailView: View {
         var urls: [URL] = []
         for hole in course.scannedHoles {
             guard let data = hole.scanData else { continue }
+            let rotation = hole.rotationDegrees
             let computed = await Task.detached(priority: .userInitiated) { () -> (GreenModel, GreenbookLayers)? in
                 guard let capture = ScanCapture(encoded: data),
                       let model = GreenModel.build(from: capture),
@@ -271,7 +281,7 @@ struct CourseDetailView: View {
             guard let computed else { continue }
             let (model, layers) = computed
             let title = "Loch \(hole.number)"
-            if let png = GreenbookExport.renderPage(model: model, layers: layers, title: title, subtitle: course.name),
+            if let png = GreenbookExport.renderPage(model: model, layers: layers, rotation: rotation, title: title, subtitle: course.name),
                let url = GreenbookExport.write(png, name: String(format: "%@ - Loch %02d.png", GreenbookExport.fileName(title: course.name, subtitle: nil), hole.number)) {
                 urls.append(url)
             }
@@ -307,7 +317,7 @@ private struct HoleTile: View {
 // MARK: - Ein Loch
 
 struct HoleView: View {
-    let hole: Hole
+    @Bindable var hole: Hole
 
     @Environment(\.modelContext) private var context
     @State private var scanning = false
@@ -317,7 +327,7 @@ struct HoleView: View {
     var body: some View {
         Group {
             if hole.isScanned, let data = hole.scanData {
-                GreenbookScreen(title: title, subtitle: hole.course?.name) { ScanCapture(encoded: data) }
+                GreenbookScreen(title: title, subtitle: hole.course?.name, rotation: $hole.rotationDegrees) { ScanCapture(encoded: data) }
                     .id(hole.scannedAt)
             } else {
                 ContentUnavailableView {

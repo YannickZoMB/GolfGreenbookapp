@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import simd
+import SwiftUI
 
 /// Strecke einer Höhenlinie in Weltkoordinaten (X, Z).
 struct ContourSegment {
@@ -20,15 +21,52 @@ struct SlopeArrow {
 /// Alles, was aus Höhenmodell und Einstellungen fürs Zeichnen berechnet wird.
 struct GreenbookLayers {
     let image: CGImage
-    let contours: [ContourSegment]
+    /// Höhenlinien als fertige Pfade in Weltkoordinaten (Meter); beim Zeichnen nur noch verschoben,
+    /// skaliert und gedreht, nicht neu aufgebaut.
+    let minorContours: Path
+    let majorContours: Path
     let arrows: [SlopeArrow]
     let style: GreenbookStyle
 
-    static func compute(model: GreenModel, style: GreenbookStyle) -> GreenbookLayers? {
-        guard let image = makeImage(model: model, coloring: style.coloring) else { return nil }
-        let contours = style.contoursOn ? makeContours(model: model, intervalCm: style.contourIntervalCm) : []
-        let arrows = style.arrowsOn ? makeArrows(model: model, spacing: Float(style.arrowSpacing)) : []
-        return GreenbookLayers(image: image, contours: contours, arrows: arrows, style: style)
+    /// Berechnet die Ebenen. Teile, deren Einstellung sich gegenüber `previous` nicht geändert hat,
+    /// werden übernommen statt neu berechnet (z. B. bleibt das Farbbild, wenn nur die Pfeile sich ändern).
+    static func compute(model: GreenModel, style: GreenbookStyle, reusing previous: GreenbookLayers? = nil) -> GreenbookLayers? {
+        let image: CGImage
+        if let previous, previous.style.coloring == style.coloring {
+            image = previous.image
+        } else if let made = makeImage(model: model, coloring: style.coloring) {
+            image = made
+        } else {
+            return nil
+        }
+
+        var minor = Path(), major = Path()
+        if style.contoursOn {
+            if let previous, previous.style.contoursOn, previous.style.contourIntervalCm == style.contourIntervalCm {
+                minor = previous.minorContours
+                major = previous.majorContours
+            } else {
+                for segment in makeContours(model: model, intervalCm: style.contourIntervalCm) {
+                    let a = CGPoint(x: CGFloat(segment.a.x), y: CGFloat(segment.a.y))
+                    let b = CGPoint(x: CGFloat(segment.b.x), y: CGFloat(segment.b.y))
+                    if segment.major {
+                        major.move(to: a); major.addLine(to: b)
+                    } else {
+                        minor.move(to: a); minor.addLine(to: b)
+                    }
+                }
+            }
+        }
+
+        var arrows: [SlopeArrow] = []
+        if style.arrowsOn {
+            if let previous, previous.style.arrowsOn, previous.style.arrowSpacing == style.arrowSpacing {
+                arrows = previous.arrows
+            } else {
+                arrows = makeArrows(model: model, spacing: Float(style.arrowSpacing))
+            }
+        }
+        return GreenbookLayers(image: image, minorContours: minor, majorContours: major, arrows: arrows, style: style)
     }
 
     // MARK: - Farbbild

@@ -23,6 +23,8 @@ final class Course {
 final class Hole {
     var number: Int
     var scannedAt: Date?
+    /// Drehung des Grüns in Grad, damit es im Greenbook richtig ausgerichtet ist.
+    var rotationDegrees: Double = 0
     /// Rohdaten des Scans (Höhenraster + Kantenpunkte), siehe `ScanCapture.encoded()`.
     @Attribute(.externalStorage) var scanData: Data?
     var course: Course?

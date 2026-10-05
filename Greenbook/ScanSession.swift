@@ -2,6 +2,16 @@ import ARKit
 import Combine
 import simd
 
+/// Daten für die Mini-Karte. Eigenes Objekt, damit die Karte nur einmal pro Sekunde neu gezeichnet wird
+/// und nicht bei jeder kleinen Änderung des Scan-Bildschirms.
+final class MiniMapState: ObservableObject {
+    @Published var coverage: [CellKey] = []
+    @Published var edgePoints: [SIMD3<Float>] = []
+    @Published var cameraPosition = SIMD2<Float>(0, 0)
+    @Published var cameraForward = SIMD2<Float>(0, -1)
+    var cellSize: Float = 0.25
+}
+
 #if !targetEnvironment(simulator)
 import RealityKit
 
@@ -16,17 +26,13 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
     let overlay = ScanOverlay()
     private let grid = HeightGrid()
 
+    let map = MiniMapState()
+
     @Published private(set) var edgePoints: [SIMD3<Float>] = []
-    @Published private(set) var coverage: [CellKey] = []
     @Published private(set) var trackingMessage: String?
-    @Published private(set) var cameraPosition = SIMD2<Float>(0, 0)
-    @Published private(set) var cameraForward = SIMD2<Float>(0, -1)
     /// Punkt, auf den das Fadenkreuz gerade zeigt (nil, wenn dort keine gültige Messung ist).
     @Published private(set) var aimPoint: SIMD3<Float>?
-    @Published private(set) var pointCount = 0
-
-    var coverageCellSize: Float { grid.coverageCellSize }
-    var coveredArea: Float { Float(coverage.count) * grid.coverageCellSize * grid.coverageCellSize }
+    @Published private(set) var coveredArea: Float = 0
 
     /// Waagerechter Abstand vom Zielpunkt zum zuletzt gesetzten Kantenpunkt.
     var distanceToLastEdgePoint: Float? {
@@ -60,12 +66,14 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
         guard let aim = aimPoint else { return false }
         edgePoints.append(aim)
         overlay.updateEdgePoints(edgePoints)
+        map.edgePoints = edgePoints
         return true
     }
 
     func removeLastEdgePoint() {
         _ = edgePoints.popLast()
         overlay.updateEdgePoints(edgePoints)
+        map.edgePoints = edgePoints
     }
 
     func makeCapture() -> ScanCapture {
@@ -75,24 +83,9 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
     // MARK: - ARSessionDelegate
 
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
-        let transform = frame.camera.transform
-        let position = transform.columns.3
-        let forward = -transform.columns.2
-
-        switch frame.camera.trackingState {
-        case .normal:
-            if trackingMessage != nil { trackingMessage = nil }
-        case .notAvailable:
-            trackingMessage = "Tracking nicht verfügbar"
-        case .limited(let reason):
-            switch reason {
-            case .initializing: trackingMessage = "Wird gestartet … iPhone langsam bewegen"
-            case .excessiveMotion: trackingMessage = "Langsamer bewegen"
-            case .insufficientFeatures: trackingMessage = "Zu wenig erkennbar, mehr Boden ins Bild nehmen"
-            case .relocalizing: trackingMessage = "Position wird wiedergefunden …"
-            @unknown default: trackingMessage = "Tracking eingeschränkt"
-            }
-        }
+        // Nur bei Änderung veröffentlichen, sonst würde der Bildschirm 60-mal pro Sekunde neu aufgebaut.
+        let message = Self.message(for: frame.camera.trackingState)
+        if message != trackingMessage { trackingMessage = message }
 
         guard case .normal = frame.camera.trackingState,
               let depth = frame.sceneDepth,
@@ -100,22 +93,48 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
         lastProcessed = frame.timestamp
 
         let projector = DepthProjector(frame: frame, depth: depth)
-        projector.forEachPoint(step: 2, maxDepth: 3.5) { point in
+        // Jeder dritte Pixel reicht: Das 256×192-Tiefenbild ist aus deutlich weniger echten
+        // Laserpunkten hochgerechnet, dichter abzutasten bringt kaum neue Information.
+        projector.forEachPoint(step: 3, maxDepth: 3.5) { point in
             grid.add(point)
         }
         aimPoint = projector.centerPoint()
 
-        if frame.timestamp - lastPublished > 0.5 {
-            lastPublished = frame.timestamp
-            cameraPosition = SIMD2(position.x, position.z)
-            let flat = SIMD2(forward.x, forward.z)
-            if simd_length(flat) > 0.01 { cameraForward = simd_normalize(flat) }
-            coverage = Array(grid.coverage.keys)
-            pointCount = grid.pointCount
-        }
-        if frame.timestamp - lastOverlayUpdate > 1.0 {
+        if frame.timestamp - lastOverlayUpdate > 0.5 {
             lastOverlayUpdate = frame.timestamp
-            overlay.updateArea(grid.arCoverage, cellSize: grid.arCellSize)
+            let dirty = grid.takeDirtyChunks()
+            if !dirty.isEmpty { overlay.updateChunks(dirty, grid: grid) }
+        }
+        if frame.timestamp - lastPublished > 1.0 {
+            lastPublished = frame.timestamp
+            let transform = frame.camera.transform
+            let position = transform.columns.3
+            let forward = -transform.columns.2
+            map.cameraPosition = SIMD2(position.x, position.z)
+            let flat = SIMD2(forward.x, forward.z)
+            if simd_length(flat) > 0.01 { map.cameraForward = simd_normalize(flat) }
+            if grid.takeCoverageChanged() {
+                map.cellSize = grid.coverageCellSize
+                map.coverage = Array(grid.coverage)
+                coveredArea = Float(grid.coverage.count) * grid.coverageCellSize * grid.coverageCellSize
+            }
+        }
+    }
+
+    private static func message(for state: ARCamera.TrackingState) -> String? {
+        switch state {
+        case .normal:
+            return nil
+        case .notAvailable:
+            return "Tracking nicht verfügbar"
+        case .limited(let reason):
+            switch reason {
+            case .initializing: return "Wird gestartet … iPhone langsam bewegen"
+            case .excessiveMotion: return "Langsamer bewegen"
+            case .insufficientFeatures: return "Zu wenig erkennbar, mehr Boden ins Bild nehmen"
+            case .relocalizing: return "Position wird wiedergefunden …"
+            @unknown default: return "Tracking eingeschränkt"
+            }
         }
     }
 }
@@ -124,7 +143,8 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
 /// und kleine Kugeln an den gesetzten Kantenpunkten.
 final class ScanOverlay {
     let anchor = AnchorEntity(world: .zero)
-    private var areaEntity: ModelEntity?
+    /// Ein 3D-Objekt pro 2-m-Block, damit bei neuen Kacheln nur der betroffene Block neu gebaut wird.
+    private var chunkEntities: [CellKey: ModelEntity] = [:]
     private var edgeEntities: [ModelEntity] = []
 
     private let areaMaterial: UnlitMaterial = {
@@ -134,46 +154,52 @@ final class ScanOverlay {
         return material
     }()
     private let edgeMaterial = UnlitMaterial(color: UIColor(red: 1, green: 1, blue: 1, alpha: 1))
+    private let edgeMesh = MeshResource.generateSphere(radius: 0.04)
 
     var isVisible: Bool {
         get { anchor.isEnabled }
         set { anchor.isEnabled = newValue }
     }
 
-    func updateArea(_ coverage: [CellKey: CellAccum], cellSize: Float) {
-        var positions: [SIMD3<Float>] = []
-        var indices: [UInt32] = []
-        positions.reserveCapacity(coverage.count * 4)
-        indices.reserveCapacity(coverage.count * 6)
+    func updateChunks(_ chunks: Set<CellKey>, grid: HeightGrid) {
+        let size = grid.arCellSize
         // Kleiner Spalt zwischen den Kacheln, damit man das Raster erkennt.
-        let inset = cellSize * 0.06
-        for (key, cell) in coverage where cell.count >= 3 {
-            let x0 = Float(key.x) * cellSize + inset
-            let x1 = Float(key.x + 1) * cellSize - inset
-            let z0 = Float(key.z) * cellSize + inset
-            let z1 = Float(key.z + 1) * cellSize - inset
-            // 1 cm über dem Boden, damit die Kachel nicht im Gras verschwindet.
-            let y = cell.mean + 0.01
-            let base = UInt32(positions.count)
-            positions.append(SIMD3(x0, y, z0))
-            positions.append(SIMD3(x0, y, z1))
-            positions.append(SIMD3(x1, y, z1))
-            positions.append(SIMD3(x1, y, z0))
-            indices.append(contentsOf: [base, base + 1, base + 2, base, base + 2, base + 3])
-        }
-        guard !positions.isEmpty else { return }
+        let inset = size * 0.08
+        for chunk in chunks {
+            var positions: [SIMD3<Float>] = []
+            var indices: [UInt32] = []
+            for dx in 0..<grid.arChunkSize {
+                for dz in 0..<grid.arChunkSize {
+                    let key = CellKey(x: chunk.x * grid.arChunkSize + dx, z: chunk.z * grid.arChunkSize + dz)
+                    guard grid.arCells.contains(key), let height = grid.arHeight(key) else { continue }
+                    let x0 = Float(key.x) * size + inset
+                    let x1 = Float(key.x + 1) * size - inset
+                    let z0 = Float(key.z) * size + inset
+                    let z1 = Float(key.z + 1) * size - inset
+                    // 1 cm über dem Boden, damit die Kachel nicht im Gras verschwindet.
+                    let y = height + 0.01
+                    let base = UInt32(positions.count)
+                    positions.append(SIMD3(x0, y, z0))
+                    positions.append(SIMD3(x0, y, z1))
+                    positions.append(SIMD3(x1, y, z1))
+                    positions.append(SIMD3(x1, y, z0))
+                    indices.append(contentsOf: [base, base + 1, base + 2, base, base + 2, base + 3])
+                }
+            }
+            guard !positions.isEmpty else { continue }
 
-        var descriptor = MeshDescriptor(name: "coverage")
-        descriptor.positions = MeshBuffers.Positions(positions)
-        descriptor.primitives = .triangles(indices)
-        guard let mesh = try? MeshResource.generate(from: [descriptor]) else { return }
+            var descriptor = MeshDescriptor(name: "coverage")
+            descriptor.positions = MeshBuffers.Positions(positions)
+            descriptor.primitives = .triangles(indices)
+            guard let mesh = try? MeshResource.generate(from: [descriptor]) else { continue }
 
-        if let areaEntity {
-            areaEntity.model?.mesh = mesh
-        } else {
-            let entity = ModelEntity(mesh: mesh, materials: [areaMaterial])
-            anchor.addChild(entity)
-            areaEntity = entity
+            if let entity = chunkEntities[chunk] {
+                entity.model?.mesh = mesh
+            } else {
+                let entity = ModelEntity(mesh: mesh, materials: [areaMaterial])
+                anchor.addChild(entity)
+                chunkEntities[chunk] = entity
+            }
         }
     }
 
@@ -182,7 +208,7 @@ final class ScanOverlay {
             edgeEntities.removeLast().removeFromParent()
         }
         while edgeEntities.count < points.count {
-            let entity = ModelEntity(mesh: .generateSphere(radius: 0.04), materials: [edgeMaterial])
+            let entity = ModelEntity(mesh: edgeMesh, materials: [edgeMaterial])
             anchor.addChild(entity)
             edgeEntities.append(entity)
         }
@@ -289,16 +315,12 @@ private struct DepthProjector {
 final class ScanSession: ObservableObject {
     static var isSupported: Bool { false }
 
+    let map = MiniMapState()
     @Published private(set) var edgePoints: [SIMD3<Float>] = []
-    @Published private(set) var coverage: [CellKey] = []
     @Published private(set) var trackingMessage: String? = "Im Simulator gibt es keine Kamera"
-    @Published private(set) var cameraPosition = SIMD2<Float>(0, 0)
-    @Published private(set) var cameraForward = SIMD2<Float>(0, -1)
     @Published private(set) var aimPoint: SIMD3<Float>?
-    @Published private(set) var pointCount = 0
+    @Published private(set) var coveredArea: Float = 0
 
-    let coverageCellSize: Float = 0.25
-    var coveredArea: Float { 0 }
     var distanceToLastEdgePoint: Float? { nil }
 
     func start() {}

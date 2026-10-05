@@ -7,6 +7,8 @@ struct GreenbookScreen: View {
     let subtitle: String?
     /// Lädt die Scan-Daten; läuft im Hintergrund.
     let loadCapture: @Sendable () -> ScanCapture?
+    /// Ausrichtung des Grüns in Grad, wird pro Loch gespeichert.
+    @Binding var rotation: Double
 
     @State private var capture: ScanCapture?
     @State private var model: GreenModel?
@@ -14,11 +16,14 @@ struct GreenbookScreen: View {
     @State private var failed = false
     @State private var showSettings = false
     @State private var shareItems: ShareItems?
+    /// Drehung zu Beginn einer Zwei-Finger-Geste.
+    @State private var gestureStart: Double?
     private var storage = GreenbookStyleStorage()
 
-    init(title: String, subtitle: String? = nil, loadCapture: @escaping @Sendable () -> ScanCapture?) {
+    init(title: String, subtitle: String? = nil, rotation: Binding<Double>, loadCapture: @escaping @Sendable () -> ScanCapture?) {
         self.title = title
         self.subtitle = subtitle
+        self._rotation = rotation
         self.loadCapture = loadCapture
     }
 
@@ -26,8 +31,12 @@ struct GreenbookScreen: View {
         Group {
             if let model, let layers {
                 VStack(spacing: 12) {
-                    GreenMapView(model: model, layers: layers)
+                    GreenMapView(model: model, layers: layers, rotation: rotation)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.horizontal)
+                        .contentShape(Rectangle())
+                        .gesture(rotationGesture)
+                    rotationControl
                         .padding(.horizontal)
                     HeightLegend(model: model, coloring: layers.style.coloring)
                         .padding(.horizontal)
@@ -83,11 +92,55 @@ struct GreenbookScreen: View {
         .task(id: LayerKey(ready: model != nil, style: storage.style)) {
             guard let model else { return }
             let style = storage.style
+            let previous = layers
             let computed = await Task.detached(priority: .userInitiated) {
-                GreenbookLayers.compute(model: model, style: style)
+                GreenbookLayers.compute(model: model, style: style, reusing: previous)
             }.value
             if !Task.isCancelled { layers = computed }
         }
+    }
+
+    /// Regler für die Ausrichtung, mit Knöpfen für 90°-Schritte.
+    private var rotationControl: some View {
+        HStack(spacing: 12) {
+            Button {
+                rotation = normalized(rotation - 90)
+            } label: {
+                Image(systemName: "rotate.left")
+            }
+            Slider(value: $rotation, in: -180...180, step: 1)
+            Button {
+                rotation = normalized(rotation + 90)
+            } label: {
+                Image(systemName: "rotate.right")
+            }
+            Text("\(Int(rotation))°")
+                .font(.caption.monospacedDigit())
+                .frame(width: 40, alignment: .trailing)
+                .onTapGesture(count: 2) { rotation = 0 }
+        }
+        .buttonStyle(.borderless)
+    }
+
+    /// Mit zwei Fingern drehen.
+    private var rotationGesture: some Gesture {
+        RotationGesture()
+            .onChanged { angle in
+                let start = gestureStart ?? rotation
+                gestureStart = start
+                rotation = normalized(start + angle.degrees)
+            }
+            .onEnded { _ in
+                rotation = rotation.rounded()
+                gestureStart = nil
+            }
+    }
+
+    private func normalized(_ degrees: Double) -> Double {
+        var d = degrees.truncatingRemainder(dividingBy: 360)
+        if d > 180 { d -= 360 }
+        if d < -180 { d += 360 }
+        return d
     }
 
     private struct LayerKey: Equatable {
@@ -116,7 +169,7 @@ struct GreenbookScreen: View {
         guard let model, let layers, let capture else { return }
         var urls: [URL] = []
         let base = GreenbookExport.fileName(title: title, subtitle: subtitle)
-        if let png = GreenbookExport.renderPage(model: model, layers: layers, title: title, subtitle: subtitle),
+        if let png = GreenbookExport.renderPage(model: model, layers: layers, rotation: rotation, title: title, subtitle: subtitle),
            let url = GreenbookExport.write(png, name: "\(base).png") {
             urls.append(url)
         }
@@ -151,13 +204,13 @@ struct ShareSheet: UIViewControllerRepresentable {
 /// Erzeugt die Export-Seiten als PNG.
 enum GreenbookExport {
     @MainActor
-    static func renderPage(model: GreenModel, layers: GreenbookLayers, title: String, subtitle: String?) -> Data? {
+    static func renderPage(model: GreenModel, layers: GreenbookLayers, rotation: Double, title: String, subtitle: String?) -> Data? {
         let page = VStack(alignment: .leading, spacing: 16) {
             Text(title).font(.system(size: 44, weight: .bold))
             if let subtitle {
                 Text(subtitle).font(.system(size: 22)).foregroundStyle(.secondary)
             }
-            GreenMapView(model: model, layers: layers)
+            GreenMapView(model: model, layers: layers, rotation: rotation)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             HeightLegend(model: model, coloring: layers.style.coloring)
             Text(pageFooter(model: model, style: layers.style))

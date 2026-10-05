@@ -38,7 +38,8 @@ Mit einem kostenlosen Account läuft die App 7 Tage; danach einfach in Xcode wie
 2. **Kante:** Lauf um das Grün und richte das Fadenkreuz auf die Grenze zwischen Grün und Vorgrün. Alle 2–3 m auf *Punkt setzen* tippen (die Anzeige zeigt den Abstand zum letzten Punkt). Falsch gesetzt? Pfeil-Knopf löscht den letzten Punkt.
 3. **Fläche:** Geh danach in Bahnen über das Grün, das iPhone in Hüfthöhe schräg nach unten, ca. 1–3 m vor dir. Erfasste Bereiche werden im Kamerabild grün (Augen-Knopf blendet das aus).
 4. *Fertig* tippen: die App rechnet das Greenbook aus.
-5. Oben rechts: Regler-Symbol für Höhenlinien, Pfeile und Farben; Teilen-Symbol für Bild und Messwerte. Auf der Platzübersicht exportiert *Buch* alle gescannten Löcher.
+5. Unter dem Grün: Regler zum Drehen (oder mit zwei Fingern drehen, Doppeltipp auf die Gradzahl setzt zurück); wird pro Loch gespeichert.
+6. Oben rechts: Regler-Symbol für Höhenlinien, Pfeile und Farben; Teilen-Symbol für Bild und Messwerte. Auf der Platzübersicht exportiert *Buch* alle gescannten Löcher.
 
 ## Aufbau des Codes
 

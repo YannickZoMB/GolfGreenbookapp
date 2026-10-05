@@ -25,7 +25,8 @@ struct ScanView: View {
                 statusBar
                 Spacer()
                 HStack(alignment: .bottom) {
-                    MiniMapView(scan: scan)
+                    MiniMapView(map: scan.map)
+                        .equatable()
                         .frame(width: 150, height: 150)
                     Spacer()
                 }
@@ -141,20 +142,23 @@ struct ARViewContainer: UIViewRepresentable {
 #endif
 
 /// Draufsicht während des Scans: grau = bereits erfasst, grün = Kante, blau = eigene Position.
-private struct MiniMapView: View {
-    @ObservedObject var scan: ScanSession
+private struct MiniMapView: View, Equatable {
+    @ObservedObject var map: MiniMapState
+
+    // Nur neu zeichnen, wenn sich die Kartendaten selbst ändern, nicht bei jeder Änderung des Scan-Bildschirms.
+    static func == (lhs: MiniMapView, rhs: MiniMapView) -> Bool { lhs.map === rhs.map }
 
     var body: some View {
         Canvas { context, size in
-            let cell = scan.coverageCellSize
-            var minP = scan.cameraPosition - SIMD2(5, 5)
-            var maxP = scan.cameraPosition + SIMD2(5, 5)
-            for key in scan.coverage {
+            let cell = map.cellSize
+            var minP = map.cameraPosition - SIMD2(5, 5)
+            var maxP = map.cameraPosition + SIMD2(5, 5)
+            for key in map.coverage {
                 let p = SIMD2(Float(key.x) * cell, Float(key.z) * cell)
                 minP = simd_min(minP, p)
                 maxP = simd_max(maxP, p + SIMD2(cell, cell))
             }
-            for e in scan.edgePoints {
+            for e in map.edgePoints {
                 minP = simd_min(minP, SIMD2(e.x, e.z))
                 maxP = simd_max(maxP, SIMD2(e.x, e.z))
             }
@@ -170,13 +174,13 @@ private struct MiniMapView: View {
 
             var covered = Path()
             let side = CGFloat(cell) * scale + 0.5
-            for key in scan.coverage {
+            for key in map.coverage {
                 let origin = toView(SIMD2(Float(key.x) * cell, Float(key.z) * cell))
                 covered.addRect(CGRect(origin: origin, size: CGSize(width: side, height: side)))
             }
             context.fill(covered, with: .color(.white.opacity(0.6)))
 
-            let edge2D = scan.edgePoints.map { SIMD2($0.x, $0.z) }
+            let edge2D = map.edgePoints.map { SIMD2($0.x, $0.z) }
             if edge2D.count >= 3 {
                 let curve = EdgeSpline.closedCurve(through: edge2D)
                 var path = Path()
@@ -189,8 +193,8 @@ private struct MiniMapView: View {
                 context.fill(Path(ellipseIn: CGRect(x: c.x - 3, y: c.y - 3, width: 6, height: 6)), with: .color(.green))
             }
 
-            let me = toView(scan.cameraPosition)
-            let ahead = toView(scan.cameraPosition + scan.cameraForward * 2)
+            let me = toView(map.cameraPosition)
+            let ahead = toView(map.cameraPosition + map.cameraForward * 2)
             var heading = Path()
             heading.move(to: me)
             heading.addLine(to: ahead)
