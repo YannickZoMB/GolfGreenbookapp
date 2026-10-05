@@ -20,14 +20,18 @@ struct CellAccum {
 final class HeightGrid {
     /// Kantenlänge einer Zelle des Höhenrasters in Metern.
     let cellSize: Float = 0.05
-    /// Kantenlänge der groben Zellen für die Abdeckungsanzeige.
+    /// Kantenlänge der groben Zellen für Mini-Karte und Flächenanzeige.
     let coverageCellSize: Float = 0.25
+    /// Kantenlänge der grünen Kacheln im AR-Bild.
+    let arCellSize: Float = 0.10
     /// Punkte, die so weit vom bisherigen Mittelwert einer Zelle abweichen, werden verworfen (Füße, Fahnenstange …).
     private let outlierThreshold: Double = 0.05
 
     private(set) var cells: [CellKey: CellAccum] = [:]
     /// Grobe Zellen mit mittlerer Höhe, für die Abdeckungsanzeige im AR-Bild und in der Mini-Karte.
     private(set) var coverage: [CellKey: CellAccum] = [:]
+    /// Feinere Zellen mit mittlerer Höhe für die grünen Kacheln im AR-Bild.
+    private(set) var arCoverage: [CellKey: CellAccum] = [:]
     private(set) var pointCount = 0
 
     func add(_ p: SIMD3<Float>) {
@@ -47,6 +51,12 @@ final class HeightGrid {
         coverageCell.sum += Double(p.y)
         coverageCell.count += 1
         coverage[coarse] = coverageCell
+
+        let arKey = CellKey(x: Int32(floor(p.x / arCellSize)), z: Int32(floor(p.z / arCellSize)))
+        var arCell = arCoverage[arKey] ?? CellAccum()
+        arCell.sum += Double(p.y)
+        arCell.count += 1
+        arCoverage[arKey] = arCell
     }
 }
 

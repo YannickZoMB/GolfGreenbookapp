@@ -115,7 +115,7 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
         }
         if frame.timestamp - lastOverlayUpdate > 1.0 {
             lastOverlayUpdate = frame.timestamp
-            overlay.updateArea(grid.coverage, cellSize: grid.coverageCellSize)
+            overlay.updateArea(grid.arCoverage, cellSize: grid.arCellSize)
         }
     }
 }

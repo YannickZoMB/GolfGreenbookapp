@@ -57,9 +57,9 @@ struct GreenModel {
         guard measured > 0 else { return nil }
 
         fillGaps(&heights, inside: inside, cols: cols, rows: rows, maxPasses: 60)
-        // Zweimal über ca. 35 cm mitteln, um Gras- und Sensorrauschen zu glätten.
+        // Zweimal über ca. 15 cm mitteln, um Gras- und Sensorrauschen zu glätten.
         for _ in 0..<2 {
-            heights = boxBlur(heights, inside: inside, cols: cols, rows: rows, radius: 3)
+            heights = boxBlur(heights, inside: inside, cols: cols, rows: rows, radius: 1)
         }
 
         let valid = heights.filter { !$0.isNaN }.sorted()

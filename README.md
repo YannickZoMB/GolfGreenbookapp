@@ -47,9 +47,9 @@ Mit einem kostenlosen Account läuft die App 7 Tage; danach einfach in Xcode wie
 | `HomeView.swift` | Startseite, Golfplätze, Löcher, Platz-Export |
 | `Models.swift` | gespeicherte Daten (Golfplatz, Loch, Scan) |
 | `ScanSession.swift` | AR-Sitzung, LiDAR-Tiefenbilder → Weltpunkte, grüne Markierung im Kamerabild |
-| `HeightGrid.swift` | sammelt Punkte in einem 5-cm-Höhenraster |
+| `HeightGrid.swift` | sammelt Punkte in einem 5-cm-Höhenraster (AR-Kacheln 10 cm) |
 | `EdgeSpline.swift` | verbindet Kantenpunkte zu einer geschwungenen Kurve |
-| `GreenModel.swift` | Auswertung: Lücken füllen, glätten, CSV-Export |
+| `GreenModel.swift` | Auswertung: Lücken füllen, über ca. 15 cm glätten, CSV-Export |
 | `GreenbookLayers.swift` | Farbbild, Höhenlinien und Gefälle-Pfeile berechnen |
 | `GreenbookStyle.swift` | Einstellungen und Regler |
 | `GreenMapView.swift` | zeichnet das Greenbook |
