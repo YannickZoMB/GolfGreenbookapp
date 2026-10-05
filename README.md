@@ -40,6 +40,7 @@ Mit einem kostenlosen Account läuft die App 7 Tage; danach einfach in Xcode wie
 4. *Fertig* tippen: die App rechnet das Greenbook aus.
 5. Unter dem Grün: Regler zum Drehen (oder mit zwei Fingern drehen, Doppeltipp auf die Gradzahl setzt zurück); wird pro Loch gespeichert.
 6. Oben rechts: Regler-Symbol für Höhenlinien, Pfeile und Farben; Teilen-Symbol für Bild und Messwerte. Auf der Platzübersicht exportiert *Buch* alle gescannten Löcher.
+7. Golfplatz löschen: in der Liste nach links wischen (oder lange drücken), oder auf der Platzseite über das ⋯-Menü. Es kommt immer eine Sicherheitsabfrage.
 
 ## Aufbau des Codes
 

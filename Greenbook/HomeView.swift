@@ -121,6 +121,7 @@ struct CourseListView: View {
 
     @Query(sort: \Course.createdAt, order: .reverse) private var courses: [Course]
     @Environment(\.modelContext) private var context
+    @State private var courseToDelete: Course?
 
     var body: some View {
         List {
@@ -134,10 +135,27 @@ struct CourseListView: View {
                     }
                     .padding(.vertical, 4)
                 }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button("Löschen", systemImage: "trash", role: .destructive) { courseToDelete = course }
+                }
+                .contextMenu {
+                    Button("Golfplatz löschen", systemImage: "trash", role: .destructive) { courseToDelete = course }
+                }
             }
-            .onDelete { offsets in
-                for index in offsets { context.delete(courses[index]) }
+        }
+        .confirmationDialog(
+            "„\(courseToDelete?.name ?? "")“ löschen?",
+            isPresented: Binding(get: { courseToDelete != nil }, set: { if !$0 { courseToDelete = nil } }),
+            titleVisibility: .visible,
+            presenting: courseToDelete
+        ) { course in
+            Button("Golfplatz löschen", role: .destructive) {
+                context.delete(course)
+                try? context.save()
+                courseToDelete = nil
             }
+        } message: { course in
+            Text("Alle \(course.scannedHoles.count) gescannten Grüns dieses Platzes werden ebenfalls gelöscht. Das lässt sich nicht rückgängig machen.")
         }
         .overlay {
             if courses.isEmpty {
@@ -218,7 +236,10 @@ struct NewCourseView: View {
 struct CourseDetailView: View {
     let course: Course
 
+    @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
     @State private var exporting = false
+    @State private var confirmDelete = false
     @State private var shareItems: ShareItems?
     private var storage = GreenbookStyleStorage()
 
@@ -250,6 +271,18 @@ struct CourseDetailView: View {
                 }
                 .disabled(course.scannedHoles.isEmpty || exporting)
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Golfplatz löschen", systemImage: "trash", role: .destructive) { confirmDelete = true }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .confirmationDialog("„\(course.name)“ löschen?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Golfplatz löschen", role: .destructive, action: deleteCourse)
+        } message: {
+            Text("Alle \(course.scannedHoles.count) gescannten Grüns dieses Platzes werden ebenfalls gelöscht. Das lässt sich nicht rückgängig machen.")
         }
         .overlay {
             if exporting {
@@ -260,6 +293,18 @@ struct CourseDetailView: View {
         }
         .sheet(item: $shareItems) { items in
             ShareSheet(items: items.urls)
+        }
+    }
+
+    /// Erst zurück zur Liste, dann löschen, damit diese Ansicht nicht mehr auf den gelöschten Platz zugreift.
+    private func deleteCourse() {
+        let course = course
+        let context = context
+        dismiss()
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            context.delete(course)
+            try? context.save()
         }
     }
 
