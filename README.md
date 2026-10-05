@@ -35,8 +35,8 @@ Mit einem kostenlosen Account läuft die App 7 Tage; danach einfach in Xcode wie
 ## So scannst du
 
 1. *Neuen Golfplatz anlegen* → Name und Lochanzahl → *Starten*. Loch antippen → *Grün scannen*. Kurz warten, bis der gelbe Hinweis oben verschwindet.
-2. **Kante:** Lauf um das Grün und richte das Fadenkreuz auf die Grenze zwischen Grün und Vorgrün. Alle 2–3 m auf *Punkt setzen* tippen (die Anzeige zeigt den Abstand zum letzten Punkt). Falsch gesetzt? Pfeil-Knopf löscht den letzten Punkt.
-3. **Fläche:** Geh danach in Bahnen über das Grün, das iPhone in Hüfthöhe schräg nach unten, ca. 1–3 m vor dir. Erfasste Bereiche werden im Kamerabild grün (Augen-Knopf blendet das aus).
+2. **Kante** (oben ist *Kante* gewählt): Lauf um das Grün und richte die Zielmarke auf die Grenze zwischen Grün und Vorgrün. Wird der Ring grün, tippst du auf den großen runden Auslöser. Alle 2–3 m einen Punkt setzen; unter der Zielmarke steht der Abstand zum letzten Punkt (orange ab 3,5 m). Falsch gesetzt? Der Pfeil-Knopf links löscht den letzten Punkt. Im Kamerabild erscheint die Kante als weiße Linie.
+3. **Fläche** (oben auf *Fläche* umschalten): Geh in Bahnen über das Grün, das iPhone in Hüfthöhe schräg nach unten, ca. 1–3 m vor dir. Erfasste Bereiche legen sich als grüner Schleier auf den Rasen (Augen-Knopf rechts blendet ihn aus), in der Mitte unten steht die erfasste Fläche.
 4. *Fertig* tippen: die App rechnet das Greenbook aus.
 5. Unter dem Grün: Regler zum Drehen (oder mit zwei Fingern drehen, Doppeltipp auf die Gradzahl setzt zurück); wird pro Loch gespeichert.
 6. Oben rechts: Regler-Symbol für Höhenlinien, Pfeile und Farben; Teilen-Symbol für Bild und Messwerte. Auf der Platzübersicht exportiert *Buch* alle gescannten Löcher.

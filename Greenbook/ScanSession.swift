@@ -65,14 +65,14 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
     func addEdgePoint() -> Bool {
         guard let aim = aimPoint else { return false }
         edgePoints.append(aim)
-        overlay.updateEdgePoints(edgePoints)
+        overlay.updateEdgePoints(edgePoints, grid: grid)
         map.edgePoints = edgePoints
         return true
     }
 
     func removeLastEdgePoint() {
         _ = edgePoints.popLast()
-        overlay.updateEdgePoints(edgePoints)
+        overlay.updateEdgePoints(edgePoints, grid: grid)
         map.edgePoints = edgePoints
     }
 
@@ -139,50 +139,88 @@ final class ScanSession: NSObject, ObservableObject, ARSessionDelegate {
     }
 }
 
-/// Zeichnet im AR-Bild halbtransparente grüne Kacheln über alles, was schon gemessen wurde,
-/// und kleine Kugeln an den gesetzten Kantenpunkten.
+/// Zeichnet im AR-Bild eine halbtransparente grüne Fläche über alles, was schon gemessen wurde,
+/// sowie die Kante als weiße Linie mit kleinen Kugeln an den gesetzten Punkten.
 final class ScanOverlay {
     let anchor = AnchorEntity(world: .zero)
     /// Ein 3D-Objekt pro 2-m-Block, damit bei neuen Kacheln nur der betroffene Block neu gebaut wird.
     private var chunkEntities: [CellKey: ModelEntity] = [:]
     private var edgeEntities: [ModelEntity] = []
+    private let edgeLine = ModelEntity()
 
     private let areaMaterial: UnlitMaterial = {
-        var material = UnlitMaterial(color: UIColor(red: 0.2, green: 0.85, blue: 0.3, alpha: 1))
-        material.blending = .transparent(opacity: 0.35)
+        var material = UnlitMaterial(color: UIColor(red: 0.35, green: 0.95, blue: 0.55, alpha: 1))
+        material.blending = .transparent(opacity: 0.28)
         return material
     }()
-    private let edgeMaterial = UnlitMaterial(color: UIColor(red: 1, green: 1, blue: 1, alpha: 1))
-    private let edgeMesh = MeshResource.generateSphere(radius: 0.04)
+    private let edgeLineMaterial: UnlitMaterial = {
+        var material = UnlitMaterial(color: .white)
+        material.blending = .transparent(opacity: 0.9)
+        return material
+    }()
+    private let edgeMaterial = UnlitMaterial(color: .white)
+    private let edgeMesh = MeshResource.generateSphere(radius: 0.03)
+
+    init() {
+        anchor.addChild(edgeLine)
+    }
 
     var isVisible: Bool {
         get { anchor.isEnabled }
         set { anchor.isEnabled = newValue }
     }
 
+    /// Baut die Fläche der geänderten Blöcke neu. Benachbarte Kacheln teilen sich ihre Eckpunkte,
+    /// deren Höhe der Mittelwert der angrenzenden Kacheln ist: So liegt eine durchgehende, weiche
+    /// Fläche auf dem Rasen statt einzelner Kästchen.
     func updateChunks(_ chunks: Set<CellKey>, grid: HeightGrid) {
         let size = grid.arCellSize
-        // Kleiner Spalt zwischen den Kacheln, damit man das Raster erkennt.
-        let inset = size * 0.08
+        let n = grid.arChunkSize
         for chunk in chunks {
+            let originX = chunk.x * n
+            let originZ = chunk.z * n
+
+            // Höhen der Kacheln im Block plus einem Rand von einer Kachel ringsum.
+            var heights: [CellKey: Float] = [:]
+            for x in (originX - 1)...(originX + n) {
+                for z in (originZ - 1)...(originZ + n) {
+                    let key = CellKey(x: x, z: z)
+                    if grid.arCells.contains(key), let h = grid.arHeight(key) { heights[key] = h }
+                }
+            }
+
             var positions: [SIMD3<Float>] = []
             var indices: [UInt32] = []
-            for dx in 0..<grid.arChunkSize {
-                for dz in 0..<grid.arChunkSize {
-                    let key = CellKey(x: chunk.x * grid.arChunkSize + dx, z: chunk.z * grid.arChunkSize + dz)
-                    guard grid.arCells.contains(key), let height = grid.arHeight(key) else { continue }
-                    let x0 = Float(key.x) * size + inset
-                    let x1 = Float(key.x + 1) * size - inset
-                    let z0 = Float(key.z) * size + inset
-                    let z1 = Float(key.z + 1) * size - inset
-                    // 1 cm über dem Boden, damit die Kachel nicht im Gras verschwindet.
-                    let y = height + 0.01
-                    let base = UInt32(positions.count)
-                    positions.append(SIMD3(x0, y, z0))
-                    positions.append(SIMD3(x0, y, z1))
-                    positions.append(SIMD3(x1, y, z1))
-                    positions.append(SIMD3(x1, y, z0))
-                    indices.append(contentsOf: [base, base + 1, base + 2, base, base + 2, base + 3])
+            var vertexIndex: [CellKey: UInt32] = [:]
+            /// Eckpunkt (x, z) des Rasters; Höhe aus den bis zu vier angrenzenden Kacheln.
+            func vertex(_ x: Int32, _ z: Int32) -> UInt32 {
+                let key = CellKey(x: x, z: z)
+                if let index = vertexIndex[key] { return index }
+                var sum: Float = 0
+                var count: Float = 0
+                for (dx, dz) in [(-1, -1), (0, -1), (-1, 0), (0, 0)] as [(Int32, Int32)] {
+                    if let h = heights[CellKey(x: x + dx, z: z + dz)] {
+                        sum += h
+                        count += 1
+                    }
+                }
+                // 1 cm über dem Boden, damit die Fläche nicht im Gras verschwindet.
+                let y = sum / max(count, 1) + 0.01
+                let index = UInt32(positions.count)
+                positions.append(SIMD3(Float(x) * size, y, Float(z) * size))
+                vertexIndex[key] = index
+                return index
+            }
+
+            for x in originX..<(originX + n) {
+                for z in originZ..<(originZ + n) {
+                    guard heights[CellKey(x: x, z: z)] != nil else { continue }
+                    let a = vertex(x, z)
+                    let b = vertex(x, z + 1)
+                    let c = vertex(x + 1, z + 1)
+                    let d = vertex(x + 1, z)
+                    // Gegen den Uhrzeigersinn von oben gesehen: Vorderseite zeigt nach oben zur Kamera.
+                    indices.append(contentsOf: [a, b, c, a, c, d])
                 }
             }
             guard !positions.isEmpty else { continue }
@@ -202,7 +240,7 @@ final class ScanOverlay {
         }
     }
 
-    func updateEdgePoints(_ points: [SIMD3<Float>]) {
+    func updateEdgePoints(_ points: [SIMD3<Float>], grid: HeightGrid) {
         while edgeEntities.count > points.count {
             edgeEntities.removeLast().removeFromParent()
         }
@@ -212,7 +250,69 @@ final class ScanOverlay {
             edgeEntities.append(entity)
         }
         for (entity, point) in zip(edgeEntities, points) {
-            entity.position = point
+            entity.position = point + SIMD3(0, 0.02, 0)
+        }
+        updateEdgeLine(points, grid: grid)
+    }
+
+    /// Weiße Linie entlang der bisher gesetzten Kante (offen, damit keine Sehne quer übers Grün läuft).
+    private func updateEdgeLine(_ points: [SIMD3<Float>], grid: HeightGrid) {
+        guard points.count >= 2 else {
+            edgeLine.model = nil
+            return
+        }
+        let samplesPerSegment = 8
+        var path: [SIMD3<Float>] = []
+        let flat = points.map { SIMD2($0.x, $0.z) }
+        let curve = points.count >= 3
+            ? EdgeSpline.closedCurve(through: flat, samplesPerSegment: samplesPerSegment)
+            : flat
+        let segments = points.count >= 3 ? points.count - 1 : 1
+        let perSegment = points.count >= 3 ? samplesPerSegment : 1
+        for k in 0..<(segments * perSegment) {
+            let p = curve[k]
+            let i = k / perSegment
+            let u = Float(k % perSegment) / Float(perSegment)
+            let fallback = points[i].y + (points[i + 1].y - points[i].y) * u
+            let cell = CellKey(x: Int32(floor(p.x / grid.arCellSize)), z: Int32(floor(p.y / grid.arCellSize)))
+            let y = grid.arCells.contains(cell) ? (grid.arHeight(cell) ?? fallback) : fallback
+            path.append(SIMD3(p.x, y + 0.015, p.y))
+        }
+        path.append(points[points.count - 1] + SIMD3(0, 0.015, 0))
+
+        let halfWidth: Float = 0.015
+        var positions: [SIMD3<Float>] = []
+        var indices: [UInt32] = []
+        for (j, p) in path.enumerated() {
+            let prev = path[max(j - 1, 0)]
+            let next = path[min(j + 1, path.count - 1)]
+            var dir = SIMD2(next.x - prev.x, next.z - prev.z)
+            if simd_length(dir) < 1e-5 { dir = SIMD2(1, 0) }
+            dir = simd_normalize(dir)
+            let side = SIMD3(-dir.y, 0, dir.x) * halfWidth
+            positions.append(p - side)
+            positions.append(p + side)
+        }
+        for j in 0..<(path.count - 1) {
+            let base = UInt32(j * 2)
+            for tri in [[base, base + 1, base + 2], [base + 1, base + 3, base + 2]] {
+                // Dreieck so drehen, dass die Vorderseite nach oben zeigt.
+                let a = positions[Int(tri[0])], b = positions[Int(tri[1])], c = positions[Int(tri[2])]
+                if simd_cross(b - a, c - a).y >= 0 {
+                    indices.append(contentsOf: tri)
+                } else {
+                    indices.append(contentsOf: [tri[0], tri[2], tri[1]])
+                }
+            }
+        }
+        var descriptor = MeshDescriptor(name: "edge")
+        descriptor.positions = MeshBuffers.Positions(positions)
+        descriptor.primitives = .triangles(indices)
+        guard let mesh = try? MeshResource.generate(from: [descriptor]) else { return }
+        if edgeLine.model == nil {
+            edgeLine.model = ModelComponent(mesh: mesh, materials: [edgeLineMaterial])
+        } else {
+            edgeLine.model?.mesh = mesh
         }
     }
 }
